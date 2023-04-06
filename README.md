@@ -12,7 +12,7 @@ Installation
 
 To run this code, you will need Python 3.6 or higher installed on your system. You can install the required libraries using pip, by running the following command:
 
-pip install fastapi httpx
+pip install -r requirements.txt
 
 To run the code, save it as a Python file (e.g. main.py) and execute the following command in your terminal:
 
