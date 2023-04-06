@@ -68,7 +68,7 @@ def test_get_movie_data(mock_get):
     ]
 
     # Test positive scenario
-    response = client.post("/movie", json={"movie_id": 1})
+    response = client.post("/movie", {"movie_id": 1})
     assert response.status_code == 200
     assert response.json() == {
         "movie_name": "A New Hope",
@@ -81,13 +81,11 @@ def test_get_movie_data(mock_get):
         ],
     }
 
-    # Test negative scenario
-    mock_get.side_effect = type("MockResponse", (object,), {"status_code": 404})
-    response = client.post("/movie", json={"movie_id": 999})
+    # Test movie not found
+    response = client.post("/movie", {"movie_id": 999})
     assert response.status_code == 200
     assert response.json() == {"error": "Movie with ID 999 not found."}
 
-
-def test_get_movie_data_invalid_input():
-    response = client.post("/movie", json={"movie_id": "not_an_integer"})
+    # Test invalid input
+    response = app.post("/movie", {"movie_id": "not_an_integer"})
     assert response.status_code == 422
