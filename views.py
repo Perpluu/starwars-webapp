@@ -19,8 +19,8 @@ async def get_movie_data(movie_id: int):
     if response.status_code != 200:
         return {"error": f"Movie with ID {movie_id} not found."}
     movie_data = response.json()
-    actors = [
-        requests.get(actor_url).json().get("name")
-        for actor_url in movie_data.get("characters", [])
+    people = [
+        requests.get(people_url).json().get("name")
+        for people_url in movie_data.get("characters", [])
     ]
-    return {"movie_name": movie_data.get("title"), "actors": actors}
+    return {"movie_name": movie_data.get("title"), "actors": people}
