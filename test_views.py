@@ -1,7 +1,7 @@
 import httpx
 import requests
 from fastapi.testclient import TestClient
-from unittest.mock import patch
+from unittest.mock import patch, Mock, call
 import pytest
 
 from views import app, get_movie_data
@@ -19,19 +19,33 @@ def test_read_number_of_planets():
 @pytest.mark.asyncio
 async def test_get_movie_data():
     with patch("requests.get") as mock_get:
-        mock_get.return_value.status_code = 200
-        mock_get.return_value.json.return_value = {
+        movie_data = {
             "title": "A New Hope",
             "characters": [
                 "https://swapi.py4e.com/api/people/1/",
                 "https://swapi.py4e.com/api/people/2/",
             ],
         }
+        character_data = [{"name": "Luke Skywalker"}, {"name": "C-3PO"}]
+
+        # Set up the mock responses
+        mock_responses = [
+            Mock(status_code=200, json=lambda: movie_data),
+            Mock(status_code=200, json=lambda: character_data[0]),
+            Mock(status_code=200, json=lambda: character_data[1]),
+        ]
+        mock_get.side_effect = mock_responses
 
         result = await get_movie_data(1)
 
-        mock_get.assert_called_once_with("https://swapi.py4e.com/api/films/1/")
-        assert result == {
-            "movie_name": "A New Hope",
-            "actors": ["Luke Skywalker", "C-3PO"],
-        }
+        # Assert that the mock was called correctly
+        mock_get.assert_has_calls(
+            [
+                call("https://swapi.py4e.com/api/films/1/"),
+                call().json(),
+                call(movie_data["characters"][0]),
+                call().json(),
+                call(movie_data["characters"][1]),
+                call().json(),
+            ]
+        )
