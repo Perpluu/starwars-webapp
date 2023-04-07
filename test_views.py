@@ -1,10 +1,9 @@
 import httpx
 import requests
 from fastapi.testclient import TestClient
-from unittest.mock import patch, Mock, call
-import pytest
+from unittest.mock import patch
 
-from views import app, get_movie_data
+from views import app
 
 
 client = TestClient(app)
@@ -16,36 +15,77 @@ def test_read_number_of_planets():
     assert response.json() == {"Number of Planets": 61}
 
 
-@pytest.mark.asyncio
-async def test_get_movie_data():
-    with patch("requests.get") as mock_get:
-        movie_data = {
-            "title": "A New Hope",
-            "characters": [
-                "https://swapi.py4e.com/api/people/1/",
-                "https://swapi.py4e.com/api/people/2/",
-            ],
-        }
-        character_data = [{"name": "Luke Skywalker"}, {"name": "C-3PO"}]
+@patch("views.requests.get")
+def test_get_movie_data(mock_get):
+    mock_movie_data = {
+        "title": "A New Hope",
+        "characters": [
+            "https://swapi.py4e.com/api/people/1/",
+            "https://swapi.py4e.com/api/people/2/",
+            "https://swapi.py4e.com/api/people/3/",
+            "https://swapi.py4e.com/api/people/4/",
+            "https://swapi.py4e.com/api/people/5/",
+        ],
+    }
+    mock_character_data = [
+        {"name": "Mark Hamill"},
+        {"name": "Harrison Ford"},
+        {"name": "Carrie Fisher"},
+        {"name": "Peter Cushing"},
+        {"name": "Alec Guinness"},
+    ]
+    mock_get.side_effect = [
+        type(
+            "MockResponse",
+            (object,),
+            {"status_code": 200, "json": lambda: mock_movie_data},
+        ),
+        type(
+            "MockResponse",
+            (object,),
+            {"status_code": 200, "json": lambda: mock_character_data[0]},
+        ),
+        type(
+            "MockResponse",
+            (object,),
+            {"status_code": 200, "json": lambda: mock_character_data[1]},
+        ),
+        type(
+            "MockResponse",
+            (object,),
+            {"status_code": 200, "json": lambda: mock_character_data[2]},
+        ),
+        type(
+            "MockResponse",
+            (object,),
+            {"status_code": 200, "json": lambda: mock_character_data[3]},
+        ),
+        type(
+            "MockResponse",
+            (object,),
+            {"status_code": 200, "json": lambda: mock_character_data[4]},
+        ),
+    ]
 
-        # Set up the mock responses
-        mock_responses = [
-            Mock(status_code=200, json=lambda: movie_data),
-            Mock(status_code=200, json=lambda: character_data[0]),
-            Mock(status_code=200, json=lambda: character_data[1]),
-        ]
-        mock_get.side_effect = mock_responses
+    # Test positive scenario
+    response = client.post("/movie", {"movie_id": 1})
+    assert response.status_code == 200
+    assert response.json() == {
+        "movie_name": "A New Hope",
+        "actors": [
+            "Mark Hamill",
+            "Harrison Ford",
+            "Carrie Fisher",
+            "Peter Cushing",
+            "Alec Guinness",
+        ],
+    }
 
-        result = await get_movie_data(1)
+    # Test movie not found
+    response = client.post("/movie", {"movie_id": 999})
+    assert response.status_code == 200
+    assert response.json() == {"error": "Movie with ID 999 not found."}
 
-        # Assert that the mock was called correctly
-        mock_get.assert_has_calls(
-            [
-                call("https://swapi.py4e.com/api/films/1/"),
-                call().json(),
-                call(movie_data["characters"][0]),
-                call().json(),
-                call(movie_data["characters"][1]),
-                call().json(),
-            ]
-        )
+    # Test invalid input
+    response = app.post("/movie", {"movie_id": "not_an_integer"})
+    assert response.status_code == 422
