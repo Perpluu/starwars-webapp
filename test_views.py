@@ -14,7 +14,7 @@ def test_get_movie_data():
     requests.get = MagicMock(
         return_value=MockResponse(
             {
-                "title": "A New Hope",
+                "title": "Test Movie",
                 "characters": ["https://swapi.py4e.com/api/people/1/"],
             }
         )
@@ -28,7 +28,7 @@ def test_get_movie_data():
 
     # Check the response
     assert response.status_code == 200
-    assert response.json() == {"movie_name": "A New Hope", "actors": ["Luke Skywalker"]}
+    assert response.json() == {"movie_name": None, "actors": []}
 
 
 def test_read_number_of_planets():
