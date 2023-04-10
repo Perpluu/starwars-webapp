@@ -1,51 +1,52 @@
 import httpx
 import requests
+from unittest.mock import AsyncMock, MagicMock
 from fastapi.testclient import TestClient
-from unittest.mock import patch, Mock, call
-import pytest
 
-from views import app, get_movie_data
+from views import app
 
 
 client = TestClient(app)
 
 
+def test_get_movie_data():
+    # Mock the requests.get function
+    requests.get = MagicMock(
+        return_value=MockResponse(
+            {
+                "title": "A New Hope",
+                "characters": ["https://swapi.py4e.com/api/people/1/"],
+            }
+        )
+    )
+
+    # Mock the response from the people API
+    requests.get().json = MagicMock(return_value={"name": "Luke Skywalker"})
+
+    # Make the request to the endpoint
+    response = client.post("/movie/1")
+
+    # Check the response
+    assert response.status_code == 200
+    assert response.json() == {"movie_name": "A New Hope", "actors": ["Luke Skywalker"]}
+
+
 def test_read_number_of_planets():
+    # Mock the httpx.AsyncClient.get function
+    httpx.AsyncClient.get = AsyncMock(return_value=MockResponse({"count": 61}))
+
+    # Make the request to the endpoint
     response = client.get("/")
+
+    # Check the response
     assert response.status_code == 200
     assert response.json() == {"Number of Planets": 61}
 
 
-@pytest.mark.asyncio
-async def test_get_movie_data():
-    with patch("requests.get") as mock_get:
-        movie_data = {
-            "title": "A New Hope",
-            "characters": [
-                "https://swapi.py4e.com/api/people/1/",
-                "https://swapi.py4e.com/api/people/2/",
-            ],
-        }
-        character_data = [{"name": "Luke Skywalker"}, {"name": "C-3PO"}]
+class MockResponse:
+    def __init__(self, json_data, status_code=200):
+        self.json_data = json_data
+        self.status_code = status_code
 
-        # Set up the mock responses
-        mock_responses = [
-            Mock(status_code=200, json=lambda: movie_data),
-            Mock(status_code=200, json=lambda: character_data[0]),
-            Mock(status_code=200, json=lambda: character_data[1]),
-        ]
-        mock_get.side_effect = mock_responses
-
-        result = await get_movie_data(1)
-
-        # Assert that the mock was called correctly
-        mock_get.assert_has_calls(
-            [
-                call("https://swapi.py4e.com/api/films/1/"),
-                call().json(),
-                call(movie_data["characters"][0]),
-                call().json(),
-                call(movie_data["characters"][1]),
-                call().json(),
-            ]
-        )
+    def json(self):
+        return self.json_data

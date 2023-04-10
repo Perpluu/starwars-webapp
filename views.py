@@ -13,7 +13,7 @@ async def read_number_of_planets():
         return {"Number of Planets": planets["count"]}
 
 
-@app.post("/movie")
+@app.post("/movie/{movie_id}")
 async def get_movie_data(movie_id: int):
     response = requests.get(f"https://swapi.py4e.com/api/films/{movie_id}/")
     movie_data = response.json()
@@ -21,4 +21,5 @@ async def get_movie_data(movie_id: int):
         requests.get(people_url).json().get("name")
         for people_url in movie_data.get("characters", [])
     ]
-    return {"movie_name": movie_data.get("title"), "actors": people}
+    movie_name = movie_data.get("title") if "title" in movie_data else None
+    return {"movie_name": movie_name, "actors": people}
