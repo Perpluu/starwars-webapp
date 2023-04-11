@@ -1,5 +1,5 @@
-from pytest_socket import disable_socket
+import pytest
 
-
-# def pytest_runtest_setup():
-#   disable_socket()
+@pytest.fixture
+def non_mocked_hosts() -> list:
+    return ["testserver"]
